@@ -11,10 +11,10 @@ USAGE:
 
   Will use the Solana CLI to fetch the Solana validators from the given URL (default is
   testnet at https://api.testnet.solana.com), sort them by the most highly staked nodes,
-  and output a InfluxDB query regexp predicate with the TOP N (default is 100).
-
-  If you add a "--regexp 0" option to the command it will print a list of validators instead
-  of a query regexp, like ["key_1", "key_2", ...]
+  and output a InfluxDB query regexp predicate with the TOP N (default is 100), like
+    "identityPubkey" =~ /^(key_1|key_2|...)$/
+  but if --regexp is False (0) returns a list, like
+    "identityPubkey" = 'key_1' OR "identityPubkey" = 'key_2' OR ...
 
 PRE-REQUISITES:
 
@@ -26,8 +26,8 @@ KNOWN LIMITATIONS:
   * The N-th validator may have the same staked value as the (N+1)-th, (N+2)-th, etc. In this case
     the cutoff at N is arbitrary. If you want to include all the nodes that have up to N-th staked
     value, the logic inside _FilterTopValidators() must be changed.
-  * "node_identity" is not an official Solana key; it might have to be replaced on a case-by-case
-    basis.
+  * The DB key should also be `identityPubkey`, if it isn't a change has to be added to
+    _CreatePredicate() or a new argument flag created.
 """
 
 import argparse
@@ -109,8 +109,10 @@ def _CreatePredicate(validators: _ValidatorsType, use_regexp: bool = True) -> st
     use_regexp: (default True) If True will use InfluxDB regexp; If False will return a list
 
   Returns:
-    predicate string; default is a regexp, like '=~ /^(key_1|key_2|...)$/' but if
-    use_regexp is False returns a list, like '["key_1", "key_2", ...]' including the quoted keys
+    predicate string; default is a regexp, like
+    "identityPubkey" =~ /^(key_1|key_2|...)$/
+    but if use_regexp is False returns a list, like
+    "identityPubkey" = 'key_1' OR "identityPubkey" = 'key_2' OR ...
 
   Raises:
     Error: if there is an error in accessing the CLI, or calling the URL, or parsing JSON
@@ -119,10 +121,10 @@ def _CreatePredicate(validators: _ValidatorsType, use_regexp: bool = True) -> st
       v.get('identityPubkey') for v in validators if v.get('identityPubkey', False))  # type: ignore
   if use_regexp:
     # make the regexp expression
-    return f'("node_identity" =~ /^({"|".join(identities_generator)})$/)'
+    return f'("identityPubkey" =~ /^({"|".join(identities_generator)})$/)'
   # user asked for a list expression, so make that
-  quoted_generator: Generator[str] = (f'"{i}"' for i in identities_generator)
-  return f'[{", ".join(quoted_generator)}]'
+  quoted_generator: Generator[str] = (f'"identityPubkey" = \'{i}\'' for i in identities_generator)
+  return ' OR '.join(quoted_generator)
 
 
 def Main() -> None:
