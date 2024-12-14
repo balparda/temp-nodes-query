@@ -3,7 +3,7 @@
 ## USAGE
 
 ```bash
-./highly_staked_query.py --count [N] --url [URL]
+./highly_staked_query.py --count [N] --url [URL] --regexp [0|1]
 ```
 
 Will use the Solana CLI to fetch the Solana validators from the given URL (default is
@@ -22,8 +22,8 @@ $ ./highly_staked_query.py --count 3
 
 ```
 
-If you add a "--regexp 0" option to the command it will print a list of validators instead
-of a query regexp, like ["key_1", "key_2", ...].
+If you add a `--regexp 0` option to the command it will print a list of validators instead
+of a query regexp, like `["key_1", "key_2", ...]`.
 
 Example (*keys reduced and info logs removed for conciseness*):
 
